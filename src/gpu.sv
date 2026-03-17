@@ -15,7 +15,8 @@ module gpu #(
     parameter int PROGRAM_MEM_DATA_BITS = 16,    // Number of bits in program memory value (16 bit instruction)
     parameter int PROGRAM_MEM_NUM_CHANNELS = 1,  // Number of concurrent channels for sending requests to program memory
     parameter int NUM_CORES = 2,                 // Number of cores to include in this GPU
-    parameter int THREADS_PER_BLOCK = 4          // Number of threads to handle per block (determines the compute resources of each core)
+    parameter int THREADS_PER_BLOCK = 4,         // Number of threads to handle per block (determines the compute resources of each core)
+    parameter int MAX_BLOCKS = 16                // Maximum number of blocks that can be dispatched for a kernel (determines max thread count of the GPU);
 ) (
     input wire clk,
     input wire reset,
@@ -27,6 +28,9 @@ module gpu #(
     // Device Control Register
     input wire device_control_write_enable,
     input wire [7:0] device_control_data,
+
+    // Block Priorities (2 bits per block, packed)
+    input wire [2*MAX_BLOCKS-1:0] block_priorities,
 
     // Program Memory
     output wire [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_valid,
@@ -55,7 +59,7 @@ module gpu #(
     reg [$clog2(THREADS_PER_BLOCK):0] core_thread_count [NUM_CORES-1:0];
 
     // LSU <> Data Memory Controller Channels
-    localparam int NUM_LSUS = NUM_CORES * THREADS_PER_BLOCK;
+    localparam NUM_LSUS = NUM_CORES * THREADS_PER_BLOCK;
     reg [NUM_LSUS-1:0] lsu_read_valid;
     reg [DATA_MEM_ADDR_BITS-1:0] lsu_read_address [NUM_LSUS-1:0];
     reg [NUM_LSUS-1:0] lsu_read_ready;
@@ -66,7 +70,7 @@ module gpu #(
     reg [NUM_LSUS-1:0] lsu_write_ready;
 
     // Fetcher <> Program Memory Controller Channels
-    localparam int NUM_FETCHERS = NUM_CORES;
+    localparam NUM_FETCHERS = NUM_CORES;
     reg [NUM_FETCHERS-1:0] fetcher_read_valid;
     reg [PROGRAM_MEM_ADDR_BITS-1:0] fetcher_read_address [NUM_FETCHERS-1:0];
     reg [NUM_FETCHERS-1:0] fetcher_read_ready;
@@ -121,12 +125,12 @@ module gpu #(
     ) program_memory_controller (
         .clk(clk),
         .reset(reset),
-
+ 
         .consumer_read_valid(fetcher_read_valid),
         .consumer_read_address(fetcher_read_address),
         .consumer_read_ready(fetcher_read_ready),
         .consumer_read_data(fetcher_read_data),
-
+ 
         .mem_read_valid(program_mem_read_valid),
         .mem_read_address(program_mem_read_address),
         .mem_read_ready(program_mem_read_ready),
@@ -136,12 +140,14 @@ module gpu #(
     // Dispatcher
     dispatch #(
         .NUM_CORES(NUM_CORES),
-        .THREADS_PER_BLOCK(THREADS_PER_BLOCK)
+        .THREADS_PER_BLOCK(THREADS_PER_BLOCK),
+        .MAX_BLOCKS(MAX_BLOCKS)
     ) dispatch_instance (
         .clk(clk),
         .reset(reset),
         .start(start),
         .thread_count(thread_count),
+        .block_priorities(block_priorities),
         .core_done(core_done),
         .core_start(core_start),
         .core_reset(core_reset),
@@ -167,8 +173,8 @@ module gpu #(
 
             // Pass through signals between LSUs and data memory controller
             genvar j;
-            for (j = 0; j < THREADS_PER_BLOCK; j = j + 1) begin : lsus
-                localparam int lsu_index = i * THREADS_PER_BLOCK + j;
+            for (j = 0; j < THREADS_PER_BLOCK; j = j + 1) begin
+                localparam lsu_index = i * THREADS_PER_BLOCK + j;
                 always @(posedge clk) begin
                     lsu_read_valid[lsu_index] <= core_lsu_read_valid[j];
                     lsu_read_address[lsu_index] <= core_lsu_read_address[j];
