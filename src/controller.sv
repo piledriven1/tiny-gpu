@@ -6,11 +6,11 @@
 // > Throttles requests based on limited external memory bandwidth
 // > Waits for responses from external memory and distributes them back to cores
 module controller #(
-    parameter ADDR_BITS = 8,
-    parameter DATA_BITS = 16,
-    parameter NUM_CONSUMERS = 4, // The number of consumers accessing memory through this controller
-    parameter NUM_CHANNELS = 1,  // The number of concurrent channels available to send requests to global memory
-    parameter WRITE_ENABLE = 1   // Whether this memory controller can write to memory (program memory is read-only)
+    parameter int ADDR_BITS = 8,
+    parameter int DATA_BITS = 16,
+    parameter int NUM_CONSUMERS = 4, // The number of consumers accessing memory through this controller
+    parameter int NUM_CHANNELS = 1,  // The number of concurrent channels available to send requests to global memory
+    parameter int WRITE_ENABLE = 1   // Whether this memory controller can write to memory (program memory is read-only)
 ) (
     input wire clk,
     input wire reset,
@@ -35,8 +35,8 @@ module controller #(
     output reg [DATA_BITS-1:0] mem_write_data [NUM_CHANNELS-1:0],
     input reg [NUM_CHANNELS-1:0] mem_write_ready
 );
-    localparam IDLE = 3'b000, 
-        READ_WAITING = 3'b010, 
+    localparam reg [2:0] IDLE = 3'b000,
+        READ_WAITING = 3'b010,
         WRITE_WAITING = 3'b011,
         READ_RELAYING = 3'b100,
         WRITE_RELAYING = 3'b101;
@@ -47,7 +47,7 @@ module controller #(
     reg [NUM_CONSUMERS-1:0] channel_serving_consumer; // Which channels are being served? Prevents many workers from picking up the same request.
 
     always @(posedge clk) begin
-        if (reset) begin 
+        if (reset) begin
             mem_read_valid <= 0;
             mem_read_address <= 0;
 
@@ -63,14 +63,14 @@ module controller #(
             controller_state <= 0;
 
             channel_serving_consumer = 0;
-        end else begin 
+        end else begin
             // For each channel, we handle processing concurrently
-            for (int i = 0; i < NUM_CHANNELS; i = i + 1) begin 
-                case (controller_state[i])
+            for (int i = 0; i < NUM_CHANNELS; i = i + 1) begin
+                unique case (controller_state[i])
                     IDLE: begin
                         // While this channel is idle, cycle through consumers looking for one with a pending request
-                        for (int j = 0; j < NUM_CONSUMERS; j = j + 1) begin 
-                            if (consumer_read_valid[j] && !channel_serving_consumer[j]) begin 
+                        for (int j = 0; j < NUM_CONSUMERS; j = j + 1) begin
+                            if (consumer_read_valid[j] && !channel_serving_consumer[j]) begin
                                 channel_serving_consumer[j] = 1;
                                 current_consumer[i] <= j;
 
@@ -80,7 +80,7 @@ module controller #(
 
                                 // Once we find a pending request, pick it up with this channel and stop looking for requests
                                 break;
-                            end else if (consumer_write_valid[j] && !channel_serving_consumer[j]) begin 
+                            end else if (consumer_write_valid[j] && !channel_serving_consumer[j]) begin
                                 channel_serving_consumer[j] = 1;
                                 current_consumer[i] <= j;
 
@@ -96,16 +96,16 @@ module controller #(
                     end
                     READ_WAITING: begin
                         // Wait for response from memory for pending read request
-                        if (mem_read_ready[i]) begin 
+                        if (mem_read_ready[i]) begin
                             mem_read_valid[i] <= 0;
                             consumer_read_ready[current_consumer[i]] <= 1;
                             consumer_read_data[current_consumer[i]] <= mem_read_data[i];
                             controller_state[i] <= READ_RELAYING;
                         end
                     end
-                    WRITE_WAITING: begin 
+                    WRITE_WAITING: begin
                         // Wait for response from memory for pending write request
-                        if (mem_write_ready[i]) begin 
+                        if (mem_write_ready[i]) begin
                             mem_write_valid[i] <= 0;
                             consumer_write_ready[current_consumer[i]] <= 1;
                             controller_state[i] <= WRITE_RELAYING;
@@ -113,14 +113,14 @@ module controller #(
                     end
                     // Wait until consumer acknowledges it received response, then reset
                     READ_RELAYING: begin
-                        if (!consumer_read_valid[current_consumer[i]]) begin 
+                        if (!consumer_read_valid[current_consumer[i]]) begin
                             channel_serving_consumer[current_consumer[i]] = 0;
                             consumer_read_ready[current_consumer[i]] <= 0;
                             controller_state[i] <= IDLE;
                         end
                     end
-                    WRITE_RELAYING: begin 
-                        if (!consumer_write_valid[current_consumer[i]]) begin 
+                    WRITE_RELAYING: begin
+                        if (!consumer_write_valid[current_consumer[i]]) begin
                             channel_serving_consumer[current_consumer[i]] = 0;
                             consumer_write_ready[current_consumer[i]] <= 0;
                             controller_state[i] <= IDLE;

@@ -35,7 +35,10 @@ module lsu (
     output reg [1:0] lsu_state,
     output reg [7:0] lsu_out
 );
-    localparam IDLE = 2'b00, REQUESTING = 2'b01, WAITING = 2'b10, DONE = 2'b11;
+    localparam reg [1:0] IDLE = 2'b00,
+        REQUESTING = 2'b01,
+        WAITING = 2'b10,
+        DONE = 2'b11;
 
     always @(posedge clk) begin
         if (reset) begin
@@ -48,15 +51,15 @@ module lsu (
             mem_write_data <= 0;
         end else if (enable) begin
             // If memory read enable is triggered (LDR instruction)
-            if (decoded_mem_read_enable) begin 
-                case (lsu_state)
+            if (decoded_mem_read_enable) begin
+                unique case (lsu_state)
                     IDLE: begin
                         // Only read when core_state = REQUEST
-                        if (core_state == 3'b011) begin 
+                        if (core_state == 3'b011) begin
                             lsu_state <= REQUESTING;
                         end
                     end
-                    REQUESTING: begin 
+                    REQUESTING: begin
                         mem_read_valid <= 1;
                         mem_read_address <= rs;
                         lsu_state <= WAITING;
@@ -68,9 +71,9 @@ module lsu (
                             lsu_state <= DONE;
                         end
                     end
-                    DONE: begin 
+                    DONE: begin
                         // Reset when core_state = UPDATE
-                        if (core_state == 3'b110) begin 
+                        if (core_state == 3'b110) begin
                             lsu_state <= IDLE;
                         end
                     end
@@ -78,15 +81,15 @@ module lsu (
             end
 
             // If memory write enable is triggered (STR instruction)
-            if (decoded_mem_write_enable) begin 
-                case (lsu_state)
+            if (decoded_mem_write_enable) begin
+                unique case (lsu_state)
                     IDLE: begin
                         // Only read when core_state = REQUEST
-                        if (core_state == 3'b011) begin 
+                        if (core_state == 3'b011) begin
                             lsu_state <= REQUESTING;
                         end
                     end
-                    REQUESTING: begin 
+                    REQUESTING: begin
                         mem_write_valid <= 1;
                         mem_write_address <= rs;
                         mem_write_data <= rt;
@@ -98,9 +101,9 @@ module lsu (
                             lsu_state <= DONE;
                         end
                     end
-                    DONE: begin 
+                    DONE: begin
                         // Reset when core_state = UPDATE
-                        if (core_state == 3'b110) begin 
+                        if (core_state == 3'b110) begin
                             lsu_state <= IDLE;
                         end
                     end

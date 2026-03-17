@@ -20,7 +20,7 @@ module alu (
     input reg [7:0] rt,
     output wire [7:0] alu_out
 );
-    localparam ADD = 2'b00,
+    localparam reg [1:0] ADD = 2'b00,
         SUB = 2'b01,
         MUL = 2'b10,
         DIV = 2'b11;
@@ -28,28 +28,28 @@ module alu (
     reg [7:0] alu_out_reg;
     assign alu_out = alu_out_reg;
 
-    always @(posedge clk) begin 
-        if (reset) begin 
+    always @(posedge clk) begin
+        if (reset) begin
             alu_out_reg <= 8'b0;
         end else if (enable) begin
             // Calculate alu_out when core_state = EXECUTE
-            if (core_state == 3'b101) begin 
-                if (decoded_alu_output_mux == 1) begin 
+            if (core_state == 3'b101) begin
+                if (decoded_alu_output_mux == 1) begin
                     // Set values to compare with NZP register in alu_out[2:0]
                     alu_out_reg <= {5'b0, (rs - rt > 0), (rs - rt == 0), (rs - rt < 0)};
-                end else begin 
+                end else begin
                     // Execute the specified arithmetic instruction
-                    case (decoded_alu_arithmetic_mux)
-                        ADD: begin 
+                    unique case (decoded_alu_arithmetic_mux)
+                        ADD: begin
                             alu_out_reg <= rs + rt;
                         end
-                        SUB: begin 
+                        SUB: begin
                             alu_out_reg <= rs - rt;
                         end
-                        MUL: begin 
+                        MUL: begin
                             alu_out_reg <= rs * rt;
                         end
-                        DIV: begin 
+                        DIV: begin
                             alu_out_reg <= rs / rt;
                         end
                     endcase

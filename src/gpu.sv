@@ -8,14 +8,14 @@
 // > Has memory controllers to interface between external memory and its multiple cores
 // > Configurable number of cores and thread capacity per core
 module gpu #(
-    parameter DATA_MEM_ADDR_BITS = 8,        // Number of bits in data memory address (256 rows)
-    parameter DATA_MEM_DATA_BITS = 8,        // Number of bits in data memory value (8 bit data)
-    parameter DATA_MEM_NUM_CHANNELS = 4,     // Number of concurrent channels for sending requests to data memory
-    parameter PROGRAM_MEM_ADDR_BITS = 8,     // Number of bits in program memory address (256 rows)
-    parameter PROGRAM_MEM_DATA_BITS = 16,    // Number of bits in program memory value (16 bit instruction)
-    parameter PROGRAM_MEM_NUM_CHANNELS = 1,  // Number of concurrent channels for sending requests to program memory
-    parameter NUM_CORES = 2,                 // Number of cores to include in this GPU
-    parameter THREADS_PER_BLOCK = 4          // Number of threads to handle per block (determines the compute resources of each core)
+    parameter int DATA_MEM_ADDR_BITS = 8,        // Number of bits in data memory address (256 rows)
+    parameter int DATA_MEM_DATA_BITS = 8,        // Number of bits in data memory value (8 bit data)
+    parameter int DATA_MEM_NUM_CHANNELS = 4,     // Number of concurrent channels for sending requests to data memory
+    parameter int PROGRAM_MEM_ADDR_BITS = 8,     // Number of bits in program memory address (256 rows)
+    parameter int PROGRAM_MEM_DATA_BITS = 16,    // Number of bits in program memory value (16 bit instruction)
+    parameter int PROGRAM_MEM_NUM_CHANNELS = 1,  // Number of concurrent channels for sending requests to program memory
+    parameter int NUM_CORES = 2,                 // Number of cores to include in this GPU
+    parameter int THREADS_PER_BLOCK = 4          // Number of threads to handle per block (determines the compute resources of each core)
 ) (
     input wire clk,
     input wire reset,
@@ -55,7 +55,7 @@ module gpu #(
     reg [$clog2(THREADS_PER_BLOCK):0] core_thread_count [NUM_CORES-1:0];
 
     // LSU <> Data Memory Controller Channels
-    localparam NUM_LSUS = NUM_CORES * THREADS_PER_BLOCK;
+    localparam int NUM_LSUS = NUM_CORES * THREADS_PER_BLOCK;
     reg [NUM_LSUS-1:0] lsu_read_valid;
     reg [DATA_MEM_ADDR_BITS-1:0] lsu_read_address [NUM_LSUS-1:0];
     reg [NUM_LSUS-1:0] lsu_read_ready;
@@ -66,12 +66,12 @@ module gpu #(
     reg [NUM_LSUS-1:0] lsu_write_ready;
 
     // Fetcher <> Program Memory Controller Channels
-    localparam NUM_FETCHERS = NUM_CORES;
+    localparam int NUM_FETCHERS = NUM_CORES;
     reg [NUM_FETCHERS-1:0] fetcher_read_valid;
     reg [PROGRAM_MEM_ADDR_BITS-1:0] fetcher_read_address [NUM_FETCHERS-1:0];
     reg [NUM_FETCHERS-1:0] fetcher_read_ready;
     reg [PROGRAM_MEM_DATA_BITS-1:0] fetcher_read_data [NUM_FETCHERS-1:0];
-    
+
     // Device Control Register
     dcr dcr_instance (
         .clk(clk),
@@ -167,16 +167,16 @@ module gpu #(
 
             // Pass through signals between LSUs and data memory controller
             genvar j;
-            for (j = 0; j < THREADS_PER_BLOCK; j = j + 1) begin
-                localparam lsu_index = i * THREADS_PER_BLOCK + j;
-                always @(posedge clk) begin 
+            for (j = 0; j < THREADS_PER_BLOCK; j = j + 1) begin : lsus
+                localparam int lsu_index = i * THREADS_PER_BLOCK + j;
+                always @(posedge clk) begin
                     lsu_read_valid[lsu_index] <= core_lsu_read_valid[j];
                     lsu_read_address[lsu_index] <= core_lsu_read_address[j];
 
                     lsu_write_valid[lsu_index] <= core_lsu_write_valid[j];
                     lsu_write_address[lsu_index] <= core_lsu_write_address[j];
                     lsu_write_data[lsu_index] <= core_lsu_write_data[j];
-                    
+
                     core_lsu_read_ready[j] <= lsu_read_ready[lsu_index];
                     core_lsu_read_data[j] <= lsu_read_data[lsu_index];
                     core_lsu_write_ready[j] <= lsu_write_ready[lsu_index];
@@ -197,7 +197,7 @@ module gpu #(
                 .done(core_done[i]),
                 .block_id(core_block_id[i]),
                 .thread_count(core_thread_count[i]),
-                
+
                 .program_mem_read_valid(fetcher_read_valid[i]),
                 .program_mem_read_address(fetcher_read_address[i]),
                 .program_mem_read_ready(fetcher_read_ready[i]),

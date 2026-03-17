@@ -6,11 +6,11 @@
 // > The core also has it's own scheduler to manage control flow
 // > Each core contains 1 fetcher & decoder, and register files, ALUs, LSUs, PC for each thread
 module core #(
-    parameter DATA_MEM_ADDR_BITS = 8,
-    parameter DATA_MEM_DATA_BITS = 8,
-    parameter PROGRAM_MEM_ADDR_BITS = 8,
-    parameter PROGRAM_MEM_DATA_BITS = 16,
-    parameter THREADS_PER_BLOCK = 4
+    parameter int DATA_MEM_ADDR_BITS = 8,
+    parameter int DATA_MEM_DATA_BITS = 8,
+    parameter int PROGRAM_MEM_ADDR_BITS = 8,
+    parameter int PROGRAM_MEM_DATA_BITS = 16,
+    parameter int THREADS_PER_BLOCK = 4
 ) (
     input wire clk,
     input wire reset,
@@ -52,7 +52,7 @@ module core #(
     reg [1:0] lsu_state[THREADS_PER_BLOCK-1:0];
     reg [7:0] lsu_out[THREADS_PER_BLOCK-1:0];
     wire [7:0] alu_out[THREADS_PER_BLOCK-1:0];
-    
+
     // Decoded Instruction Signals
     reg [3:0] decoded_rd_address;
     reg [3:0] decoded_rs_address;
@@ -85,7 +85,7 @@ module core #(
         .mem_read_ready(program_mem_read_ready),
         .mem_read_data(program_mem_read_data),
         .fetcher_state(fetcher_state),
-        .instruction(instruction) 
+        .instruction(instruction)
     );
 
     // Decoder
