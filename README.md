@@ -4,6 +4,19 @@ A minimal GPU implementation in Verilog optimized for learning about how GPUs wo
 
 Built with <15 files of fully documented Verilog, complete documentation on architecture & ISA, working matrix addition/multiplication kernels, and full support for kernel simulation & execution traces.
 
+## Modifications
+
+This program has been modified by Stanley To and Toby Mui for our GPU architecture class.
+The primary modifications include:
+
+- Priority scheduler
+  - Completed
+- Dot Product Unit (DPU) Accelerator
+  - TODO:
+    - [x] decoder.sv integration (completed)
+    - [ ] dpu.sv
+    - [ ] gpu.sv integration
+
 ### Table of Contents
 
 - [Overview](#overview)
