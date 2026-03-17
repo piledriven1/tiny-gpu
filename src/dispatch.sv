@@ -8,7 +8,7 @@
 module dispatch #(
     parameter int NUM_CORES = 2,
     parameter int THREADS_PER_BLOCK = 4,
-    parameter int MAX_BLOCKS = 16
+    parameter int MAX_BLOCKS = 64
 ) (
     input wire clk,
     input wire reset,
