@@ -3,6 +3,7 @@ build/
 test/logs/*
 !.gitkeep
 gds/**/*.gltf
+tinygpu-env/*
 
 .DS_Store
 results.xml
