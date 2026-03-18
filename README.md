@@ -10,12 +10,11 @@ This program has been modified by Stanley To and Toby Mui for our GPU architectu
 The primary modifications include:
 
 - Priority scheduler
-  - Completed
+  - Added within dispatch.sv and gpu.sv and block tracking
 - Dot Product Unit (DPU) Accelerator
-  - TODO:
-    - [x] decoder.sv integration (completed)
-    - [ ] dpu.sv
-    - [ ] gpu.sv integration
+  - dp4.sv provides combinational logic for dot-product calculation
+  - 38% speedup in calculations explicitly using DOT instructions
+    - New op-code: 1010
 
 ### Table of Contents
 
