@@ -53,6 +53,11 @@ module core #(
     reg [7:0] lsu_out[THREADS_PER_BLOCK-1:0];
     wire [7:0] alu_out[THREADS_PER_BLOCK-1:0];
 
+    // dp4 Signals
+    reg [31:0] rs_packed[THREADS_PER_BLOCK-1:0];
+    reg [31:0] rt_packed[THREADS_PER_BLOCK-1:0];
+    wire [7:0] dp4_out[THREADS_PER_BLOCK-1:0];
+
     // Decoded Instruction Signals
     reg [3:0] decoded_rd_address;
     reg [3:0] decoded_rs_address;
@@ -68,6 +73,7 @@ module core #(
     reg [1:0] decoded_reg_input_mux;        // Select input to register
     reg [1:0] decoded_alu_arithmetic_mux;   // Select arithmetic operation
     reg decoded_alu_output_mux;             // Select operation in ALU
+    reg decoded_dp4_enable;                 // Enable dp4 dot-product computation
     reg decoded_pc_mux;                     // Select source of next PC
     reg decoded_ret;
 
@@ -106,6 +112,7 @@ module core #(
         .decoded_reg_input_mux(decoded_reg_input_mux),
         .decoded_alu_arithmetic_mux(decoded_alu_arithmetic_mux),
         .decoded_alu_output_mux(decoded_alu_output_mux),
+        .decoded_dp4_enable(decoded_dp4_enable),
         .decoded_pc_mux(decoded_pc_mux),
         .decoded_ret(decoded_ret)
     );
@@ -167,6 +174,15 @@ module core #(
                 .lsu_out(lsu_out[i])
             );
 
+            // dp4 - Purely combinational dot product of 4 packed 8-bit lanes
+            wire [31:0] dp4_result_full;
+            dp4 dp4_instance (
+                .a(rs_packed[i]),
+                .b(rt_packed[i]),
+                .result(dp4_result_full)
+            );
+            assign dp4_out[i] = dp4_result_full[7:0];
+
             // Register File
             registers #(
                 .THREADS_PER_BLOCK(THREADS_PER_BLOCK),
@@ -186,8 +202,11 @@ module core #(
                 .decoded_immediate(decoded_immediate),
                 .alu_out(alu_out[i]),
                 .lsu_out(lsu_out[i]),
+                .dp4_out(dp4_out[i]),
                 .rs(rs[i]),
-                .rt(rt[i])
+                .rt(rt[i]),
+                .rs_packed(rs_packed[i]),
+                .rt_packed(rt_packed[i])
             );
 
             // Program Counter

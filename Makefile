@@ -17,6 +17,7 @@ compile:
 	mv build/temp.v build/gpu.v
 
 compile_%:
+	@mkdir -p build
 	sv2v -w build/$*.v src/$*.sv
 
 # TODO: Get gtkwave visualizaiton

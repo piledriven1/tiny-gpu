@@ -41,6 +41,8 @@ def format_instruction(instruction: str) -> str:
         return f"STR {rs}, {rt}"
     elif opcode == "1001":
         return f"CONST {rd}, {imm}"
+    elif opcode == "1010":
+        return f"DOT {rd}, {rs}, {rt}"
     elif opcode == "1111":
         return "RET"
     return "UNKNOWN"
@@ -137,5 +139,7 @@ def format_cycle(dut, cycle_id: int, thread_id: Optional[int] = None):
                         logger.debug("LSU Out:", lsu_out)
                     if reg_input_mux == 2:
                         logger.debug("Constant:", constant)
+                    if reg_input_mux == 3:
+                        logger.debug("DP4 (dot product)")
 
         logger.debug("Core Done:", str(core.core_instance.done.value))

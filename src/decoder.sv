@@ -26,11 +26,8 @@ module decoder (
     output reg [1:0] decoded_reg_input_mux,        // Select input to register
     output reg [1:0] decoded_alu_arithmetic_mux,   // Select arithmetic operation
     output reg decoded_alu_output_mux,             // Select operation in ALU
+    output reg decoded_dp4_enable,                 // Enable dp4 dot-product computation
     output reg decoded_pc_mux,                     // Select source of next PC
-
-    // New DPU signals
-    output reg decoded_dpu_enable,                 // Enable DPU for this instruction
-    output reg [7:0] decoded_dpu_vector_len,       // Length of vector
 
     // Return (finished executing thread)
     output reg decoded_ret
@@ -45,7 +42,7 @@ module decoder (
         LDR = 4'b0111,
         STR = 4'b1000,
         CONST = 4'b1001,
-        DOT = 4'b1010,  // New Dot Product instruction
+        DOT = 4'b1010,
         RET = 4'b1111;
 
     always @(posedge clk) begin
@@ -62,6 +59,7 @@ module decoder (
             decoded_reg_input_mux <= 0;
             decoded_alu_arithmetic_mux <= 0;
             decoded_alu_output_mux <= 0;
+            decoded_dp4_enable <= 0;
             decoded_pc_mux <= 0;
             decoded_ret <= 0;
         end else begin
@@ -82,6 +80,7 @@ module decoder (
                 decoded_reg_input_mux <= 0;
                 decoded_alu_arithmetic_mux <= 0;
                 decoded_alu_output_mux <= 0;
+                decoded_dp4_enable <= 0;
                 decoded_pc_mux <= 0;
                 decoded_ret <= 0;
 
@@ -130,10 +129,12 @@ module decoder (
                         decoded_reg_input_mux <= 2'b10;
                     end
                     DOT: begin
+                        // DOT Rd, Rs, Rt
+                        // Packs R[Rs]..R[Rs+3] and R[Rt]..R[Rt+3], feeds dp4
+                        // Result written to Rd
                         decoded_reg_write_enable <= 1;
-                        decoded_reg_input_mux <= 2'b11; // previously unused
-                        decoded_dpu_enable <= 1; // Enable DPU
-                        decoded_dpu_vector_len <= {{4{1'b0}}, instruction[7:4]};
+                        decoded_reg_input_mux <= 2'b11;  // DP4 result path
+                        decoded_dp4_enable <= 1;
                     end
                     RET: begin
                         decoded_ret <= 1;
